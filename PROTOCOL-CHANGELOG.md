@@ -23,6 +23,14 @@ scenarios in `_tests/scenarios.md`, bump `version` in `SKILL.md` front matter an
 `protocolVersion` in `_meta/config.json`, regenerate `_install/systemPrompt.json`,
 add the entry below.
 
+## 3.1.2 — 2026-08-02 — Schema accepts hub and log ids
+
+**PATCH**: the JSON Schema's `id` pattern was lowercase-only, but hub and log
+pages carry `<slug>/README` and `<slug>/CHANGELOG` ids because `enc_lint`
+requires the id to match the real path. The linter, the templates and
+`enc_new.py` all agreed; the schema was the odd one out. The CI schema job —
+running for the first time — caught it on the sample vault.
+
 ## 3.1.1 — 2026-08-02 — First CI run on GitHub: three latent defects fixed
 
 **PATCH**: bug fixes surfaced the moment the suite ran outside the author's

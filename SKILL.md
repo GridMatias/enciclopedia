@@ -7,7 +7,7 @@ description: >
   before answering, then propose the exact file updates that the new output makes
   necessary. Knowledge is Markdown + images; data and retained originals are
   records governed by a datasheet. Never write without explicit approval.
-version: 3.1.1
+version: 3.1.2
 updated: 2026-08-02
 config: _meta/config.json
 targets: [claude-desktop, chatgpt-desktop, windsurf, codex, devin, generic-api]

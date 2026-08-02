@@ -9,8 +9,8 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._/-]*$",
-      "description": "Path of the page without extension, relative to the encyclopedia root."
+      "pattern": "^[a-z0-9][a-z0-9._/-]*(/(README|CHANGELOG))?$",
+      "description": "Path of the page without extension, relative to the encyclopedia root. Lowercase kebab-case, except the uppercase README/CHANGELOG final segment of hub and log pages, whose id must match their real path."
     },
     "title": { "type": "string", "minLength": 1 },
     "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },

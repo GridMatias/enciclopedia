@@ -1,7 +1,7 @@
 {
   "_readme": "Canonical bootstrap for the Project Encyclopedia. Paste the value of `systemPrompt` into the system-prompt / custom-instructions / rules field of any LLM client (see ../README.md for per-client steps). Keep this file as the single source of truth: if you change the protocol, change SKILL.md and then re-sync this string.",
   "name": "project-encyclopedia",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "updated": "2026-08-02",
   "encyclopediaRoot": "auto",
   "skillFile": "SKILL.md",
