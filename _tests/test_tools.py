@@ -251,8 +251,11 @@ def test_setup(root: Path, fail) -> None:
     if proc.returncode == 2:
         fail(f"setup: refused a valid root: {out[:200]}")
         return
-    posix = root.as_posix()
-    if str(root) not in out and posix not in out:
+    # Compare against the RESOLVED path: on the GitHub Windows runner the temp
+    # dir is handed out as an 8.3 short name (C:\Users\RUNNER~1\...) while the
+    # tool prints the long form, and the two are the same folder.
+    shown = root.resolve()
+    if str(shown) not in out and shown.as_posix() not in out:
         fail("setup: the client snippets do not carry the real resolved path")
     for needle, why in (
             ("mcpServers", "no Claude Desktop snippet"),

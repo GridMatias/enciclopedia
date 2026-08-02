@@ -1,6 +1,6 @@
 {
   "$comment": "Single source of truth for paths, budgets, thresholds and vocabularies. SKILL.md and _install/systemPrompt.json must agree with this file; from phase 2 on, _tools/enc_bootstrap.py regenerates the bootstrap string from here so the two can no longer drift. Infrastructure listed under paths.infrastructure is part of the repository but is NEVER knowledge and is never cited as a source.",
-  "protocolVersion": "3.1.0",
+  "protocolVersion": "3.1.1",
   "updated": "2026-08-02",
   "encyclopediaRoot": "auto",
   "$rootComment": "'auto' = the folder containing SKILL.md, wherever the user copied it (the starter kit works from any disk or path). Set an absolute path here only to pin a non-standard layout; _tools/ resolve the root as --root > ENCYCLOPEDIA_ROOT env var > the repo containing the tool.",

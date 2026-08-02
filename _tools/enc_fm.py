@@ -15,7 +15,8 @@ Supported
 - `key:` + `- item` lines  (block list of scalars)
 - `key:` + `- sub: value` (block list of mappings, e.g. `inputs:`)
 - `key:` + indented `sub: value` lines (nested map, up to MAX_NESTING levels)
-- `key: >` / `key: |`      (folded / literal block scalars)
+- `key: >` / `key: |`      (folded / literal block scalars, chomping `-` and `+`;
+                            clip keeps one trailing newline, like PyYAML)
 - `#` comments at the start of a line or after whitespace
 
 Rejected, with an explicit problem instead of a wrong value
@@ -212,7 +213,11 @@ def _next_content(raw: list, i: int) -> int:
     return i
 
 
-def _block_scalar(raw: list, i: int, style: str, own_indent: int) -> tuple:
+def _block_scalar(raw: list, i: int, header: str, own_indent: int) -> tuple:
+    """YAML block scalar with spec chomping: clip (default) keeps one trailing
+    newline, `-` strips it, `+` keeps them all - PyYAML agrees, and the
+    differential test holds us to it."""
+    style, chomp = header[0], header[1:]
     collected, block_indent = [], None
     while i < len(raw):
         line = raw[i]
@@ -227,9 +232,30 @@ def _block_scalar(raw: list, i: int, style: str, own_indent: int) -> tuple:
             block_indent = indent
         collected.append(line[block_indent:])
         i += 1
+    trailing = 0
+    while collected and not collected[-1].strip():
+        collected.pop()
+        trailing += 1
     if style == "|":
-        return "\n".join(collected).strip("\n"), i
-    return " ".join(part.strip() for part in collected if part.strip()), i
+        text = "\n".join(collected)
+    else:
+        paragraphs, current = [], []
+        for part in collected:
+            if part.strip():
+                current.append(part.strip())
+            elif current:
+                paragraphs.append(" ".join(current))
+                current = []
+        if current:
+            paragraphs.append(" ".join(current))
+        text = "\n".join(paragraphs)
+    if not text:
+        return "", i
+    if chomp == "-":
+        return text, i
+    if chomp == "+":
+        return text + "\n" * (trailing + 1), i
+    return text + "\n", i
 
 
 def _value_after_key(raw: list, i: int, indent: int, rest: str, base: int,
@@ -238,7 +264,7 @@ def _value_after_key(raw: list, i: int, indent: int, rest: str, base: int,
     lineno = base + i
     rest = _strip_comment(rest).strip()
     if rest.rstrip("+-") in (">", "|"):
-        return _block_scalar(raw, i + 1, rest[0], indent)
+        return _block_scalar(raw, i + 1, rest, indent)
     if rest.startswith("["):
         if not rest.endswith("]"):
             problems.append(Problem("FM-SYNTAX", f"unclosed inline list for {where}", lineno))

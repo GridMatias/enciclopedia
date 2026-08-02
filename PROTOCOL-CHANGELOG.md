@@ -23,6 +23,25 @@ scenarios in `_tests/scenarios.md`, bump `version` in `SKILL.md` front matter an
 `protocolVersion` in `_meta/config.json`, regenerate `_install/systemPrompt.json`,
 add the entry below.
 
+## 3.1.1 — 2026-08-02 — First CI run on GitHub: three latent defects fixed
+
+**PATCH**: bug fixes surfaced the moment the suite ran outside the author's
+machine — which is exactly what publishing is for.
+
+- **GitHub Push Protection (GH013) blocked the kit itself**: the secret-scanner
+  fixtures contained fake credentials in real provider formats. They are now
+  assembled at runtime (`"sk_live_" + "..."`): the scanner still receives
+  byte-identical strings, but no blob in the repository matches a provider
+  signature — otherwise every downstream user publishing their own copy would
+  have been blocked too.
+- **`enc_fm` block scalars now implement YAML chomping** (clip / `-` strip /
+  `+` keep): the PyYAML differential caught `description: >` losing its trailing
+  newline, and folded paragraph breaks are folded per spec. Pinned in
+  `test_frontmatter.py` with new cases.
+- **`test_tools` compares resolved paths**: the GitHub Windows runner hands the
+  temp directory out as an 8.3 short name (`RUNNER~1`), while the tools print
+  the long form of the same folder.
+
 ## 3.1.0 — 2026-08-02 — Starter kit: portable root, media import, user-set budget
 
 **MINOR**: two new tools, a new command, a wider §11.1 and a new retrieval knob.
