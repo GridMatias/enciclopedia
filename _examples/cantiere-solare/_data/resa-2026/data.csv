@@ -1,0 +1,7 @@
+data,impianto,irraggiamento_kwh_m2,resa_kwh,temperatura_c
+2026-03-01,tetto-nord,3.10,182.4,11.2
+2026-03-02,tetto-nord,4.62,271.8,13.8
+2026-03-03,tetto-nord,2.05,118.9,9.4
+2026-03-01,tetto-sud,4.88,301.5,12.1
+2026-03-02,tetto-sud,5.41,336.2,14.6
+2026-03-03,tetto-sud,2.44,146.7,9.9

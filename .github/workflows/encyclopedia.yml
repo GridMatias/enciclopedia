@@ -1,0 +1,156 @@
+name: encyclopedia
+
+# Infrastructure, not knowledge. Proves on every push and pull request that the
+# encyclopedia is internally consistent and that a protocol change was applied to
+# all four of its faces (SKILL.md, _meta/config.json, _install/systemPrompt.json,
+# PROTOCOL-CHANGELOG.md).
+#
+# Nothing here writes to the repository: the tools only report. Fixes travel as
+# proposals reviewed by a human (_rules/governance.md 5).
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suites:
+    name: suites (${{ matrix.os }}, python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows is the primary environment for the author, Linux is CI's.
+        # 3.9 is the declared floor: if it breaks there, the claim is false.
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.12"]
+        include:
+          - os: ubuntu-latest
+            python: "3.9"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Front matter grammar
+        run: python _tests/test_frontmatter.py
+
+      - name: Credential, PII and injection scanners
+        run: python _tests/test_secrets.py
+
+      - name: Linter self-test (37 planted defect classes)
+        run: python _tests/test_lint.py
+
+      - name: Templates and generated scaffold
+        run: python _tests/test_templates.py
+
+      - name: Tools (index, verify, search, pack, audit, run id, imports, setup)
+        run: python _tests/test_tools.py
+
+      - name: Scenario harness self-test
+        run: python _tests/run_scenarios.py --self-test
+
+      - name: Integrity lint (errors block the build)
+        run: python _tools/enc_lint.py
+
+      - name: Integrity lint of the sample vault
+        run: python _tools/enc_lint.py --root _examples
+
+      - name: Record verification (checksums and datasheet claims)
+        run: python _tools/enc_verify.py --root _examples
+
+      - name: Protocol consistency (the four faces must agree)
+        run: python _tools/enc_bootstrap.py --check
+
+      - name: Index builds, shards and reports freshness
+        run: |
+          python _tools/enc_index.py --dry-run
+          python _tools/enc_index.py --stats
+          python _tools/enc_index.py --root _examples
+          python _tools/enc_index.py --root _examples --check
+
+      - name: Retrieval benchmark (regression guard on hit@3)
+        run: python _tests/bench_retrieval.py --min-hit3 0.75
+
+  contract:
+    name: front matter contract (PyYAML + JSON Schema)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CI-only dependencies
+        run: python -m pip install --quiet pyyaml check-jsonschema
+
+      - name: Parser differential (enc_fm vs PyYAML)
+        run: python _tests/test_yaml_differential.py
+
+      - name: JSON Schema on the real parse
+        run: |
+          python - <<'PY'
+          import json, subprocess, sys, tempfile
+          from pathlib import Path
+          sys.path.insert(0, "_tools")
+          import enc_fm
+          from enc_core import is_content_page, iter_paths, load_config, read_text
+          root = Path(".").resolve()
+          cfg = load_config(root)
+          docs = []
+          for base in (root, root / "_examples"):
+              if not base.exists():
+                  continue
+              for path, rel in iter_paths(base, cfg):
+                  if path.is_file() and path.suffix == ".md" and is_content_page(rel, cfg):
+                      result = enc_fm.parse(read_text(path))
+                      if result.data:
+                          docs.append((f"{base.name}/{rel.as_posix()}", result.data))
+          if not docs:
+              print("no content pages: schema check skipped")
+              sys.exit(0)
+          failed = 0
+          for name, fm in docs:
+              with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                               encoding="utf-8") as fh:
+                  json.dump(fm, fh, default=str)
+                  tmp = fh.name
+              proc = subprocess.run(["check-jsonschema", "--schemafile",
+                                     "_meta/frontmatter.schema.json", tmp],
+                                    capture_output=True, text=True)
+              if proc.returncode:
+                  failed += 1
+                  print(f"[SCHEMA] {name}\n{proc.stdout}{proc.stderr}")
+          print(f"{len(docs)} pages validated against the full contract, {failed} failed")
+          sys.exit(1 if failed else 0)
+          PY
+
+  audit:
+    name: approval trail (report only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Knowledge commits should carry their approval
+        continue-on-error: true
+        run: python _tools/enc_audit.py --range HEAD~20..HEAD
+      - name: Report (warnings are visible but do not block)
+        if: always()
+        run: python _tools/enc_lint.py --json > lint.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: lint.json
+          if-no-files-found: ignore

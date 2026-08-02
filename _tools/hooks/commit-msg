@@ -1,0 +1,24 @@
+#!/bin/sh
+# commit-msg hook: bind a knowledge change to the approval that authorised it.
+#
+# Enable once with:   git config core.hooksPath _tools/hooks
+# Bypass once with:   git commit --no-verify   (and then say why in the message)
+#
+# A commit touching <project>/**.md, a figure or INDEX.md must carry:
+#   enc-approved: <the paths the user approved>   (or 'manual')
+#   approved-by: <who, and when>
+# and the changed paths must be a SUBSET of the approval (SKILL.md section 8).
+#
+# This is the auditable half of the propose-only guarantee: the gate itself is
+# behavioural, but the diff-versus-approval check is not.
+
+PY=python
+command -v python >/dev/null 2>&1 || PY=python3
+
+$PY _tools/enc_audit.py --commit-msg "$1"
+status=$?
+if [ "$status" = "2" ]; then
+    echo "[commit-msg] git unavailable, audit skipped"
+    exit 0
+fi
+exit $status

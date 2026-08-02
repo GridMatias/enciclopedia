@@ -1,0 +1,62 @@
+#!/bin/sh
+# Pre-commit hook for the Project Encyclopedia.
+# Enable once with:   git config core.hooksPath _tools/hooks
+# Bypass once with:   git commit --no-verify   (then fix what you skipped)
+#
+# It refuses a commit that breaks integrity or leaves the protocol half-applied.
+# It never modifies files: fixes are proposals, not side effects (SKILL.md 8).
+
+set -e
+
+PY=python
+command -v python >/dev/null 2>&1 || PY=python3
+
+run_suite() {
+    label="$1"
+    shift
+    echo "[pre-commit] $label"
+    $PY "$@" >/dev/null || {
+        echo "[pre-commit] blocked by $label: run  $PY $*"
+        exit 1
+    }
+}
+
+run_suite "front matter grammar"  _tests/test_frontmatter.py
+run_suite "secret scanners"       _tests/test_secrets.py
+run_suite "linter self-test"      _tests/test_lint.py
+run_suite "templates + scaffold"  _tests/test_templates.py
+run_suite "tools"                 _tests/test_tools.py
+run_suite "scenario harness"      _tests/run_scenarios.py --self-test
+
+echo "[pre-commit] enc_lint"
+$PY _tools/enc_lint.py || {
+    echo "[pre-commit] blocked: fix the ERROR findings above, or commit with --no-verify"
+    exit 1
+}
+
+echo "[pre-commit] enc_lint --root _examples"
+$PY _tools/enc_lint.py --root _examples || {
+    echo "[pre-commit] blocked: the sample vault must stay exemplary"
+    exit 1
+}
+
+echo "[pre-commit] enc_verify"
+$PY _tools/enc_verify.py || {
+    echo "[pre-commit] blocked: a record no longer matches its checksum"
+    exit 1
+}
+
+echo "[pre-commit] enc_bootstrap --check"
+$PY _tools/enc_bootstrap.py --check || {
+    echo "[pre-commit] blocked: SKILL.md / config.json / systemPrompt.json / changelog disagree"
+    exit 1
+}
+
+# Belt and braces: never let an obvious credential reach history, even in a file
+# the linter does not classify as a page.
+if git diff --cached --name-only -z | tr '\0' '\n' | grep -qiE '(^|/)\.env($|\.)|\.pem$|\.key$'; then
+    echo "[pre-commit] blocked: a credential-looking file is staged"
+    exit 1
+fi
+
+echo "[pre-commit] OK"

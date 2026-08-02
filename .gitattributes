@@ -1,0 +1,29 @@
+# Line endings, normalised on purpose.
+#
+# 1. Markdown diffs must stay readable across machines: a whole-file CRLF flip
+#    would turn every update proposal into unreviewable noise.
+# 2. _tools/hooks/pre-commit is a /bin/sh script: with CRLF it fails on
+#    "\r: command not found", so the guardrail would silently stop guarding.
+* text=auto eol=lf
+_tools/hooks/* text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+
+# Records are evidence: a line-ending conversion silently changes their sha256 and
+# _tools/enc_verify.py would then report a mismatch on a file nobody touched.
+**/_originals/** -text
+**/_data/** -text
+_examples/** -text
+
+# Figures and binaries: never transform them either.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.parquet binary

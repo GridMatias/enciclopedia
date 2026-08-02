@@ -1,0 +1,26 @@
+# CODEOWNERS — routes review of a pull request to the person answerable for a file.
+# Infrastructure, not knowledge (SKILL.md §1.4). Replace the placeholders with real
+# GitHub handles or delete the lines you do not need; an unmatched path simply gets
+# no automatic reviewer.
+#
+# Rule from _rules/governance.md §5: a protocol change and a content change never
+# travel in the same pull request, because they have different reviewers.
+
+# --- Protocol: the rules of the game. Highest scrutiny. ---
+/SKILL.md                 @OWNER
+/AGENTS.md                @OWNER
+/PROTOCOL-CHANGELOG.md    @OWNER
+/_meta/                   @OWNER
+/_rules/                  @OWNER
+/_templates/              @OWNER
+/_tools/                  @OWNER
+/_tests/                  @OWNER
+/_install/                @OWNER
+/.github/                 @OWNER
+
+# --- Global map: touched by almost every change, review it deliberately. ---
+/INDEX.md                 @OWNER
+
+# --- Knowledge: one owner per project. Mirror the `owner` front matter. ---
+# /<project-slug>/         @PROJECT-OWNER
+# /<project-slug>/_data/   @DATA-OWNER

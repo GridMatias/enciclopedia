@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/encyclopedia/frontmatter.schema.json",
+  "title": "Encyclopedia page front matter",
+  "$comment": "Applies to content pages inside <project>/ folders. Root and infrastructure pages (SKILL.md, README.md, _rules/*, _meta/*) are exempt. _tools/enc_lint.py enforces a practical subset without requiring a JSON Schema library; use check-jsonschema in CI for the full contract.",
+  "type": "object",
+  "required": ["id", "title", "project", "type", "status", "lang", "created", "updated"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$",
+      "description": "Path of the page without extension, relative to the encyclopedia root."
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "type": {
+      "enum": ["note", "spec", "decision", "log", "reference", "imported", "experiment", "dataset", "paper-note", "meeting", "policy", "hub"]
+    },
+    "status": { "enum": ["draft", "active", "stable", "deprecated"] },
+    "lang": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
+    "confidentiality": { "enum": ["public", "internal", "restricted"] },
+    "owner": { "type": "string" },
+    "created": { "type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "updated": { "type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "review_by": { "type": "string", "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$" },
+    "reviewed_by": { "type": "array", "items": { "type": "string" } },
+    "retention": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "aliases": { "type": "array", "items": { "type": "string" } },
+    "sources": { "type": "array", "items": { "type": "string" } },
+    "related": { "type": "array", "items": { "type": "string" } },
+    "supersedes": { "type": "array", "items": { "type": "string" } },
+    "superseded_by": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["storage", "location", "format", "sha256"],
+      "properties": {
+        "storage": { "enum": ["inline", "pointer"] },
+        "location": { "type": "string" },
+        "format": { "type": "string" },
+        "delimiter": { "type": "string" },
+        "encoding": { "type": "string" },
+        "rows": { "type": "integer", "minimum": 0 },
+        "columns": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "obtained": { "type": "string" },
+        "snapshot_of": { "type": "string" },
+        "licence": { "type": "string" },
+        "usage_terms": { "type": "string" }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "required": ["hypothesis", "seed", "environment", "outcome"],
+      "properties": {
+        "hypothesis": { "type": "string" },
+        "preregistered": { "type": "boolean" },
+        "run_dates": { "type": "array", "items": { "type": "string" } },
+        "operator": { "type": "string" },
+        "seed": {},
+        "commit": { "type": "string" },
+        "command": { "type": "string" },
+        "environment": { "type": "object" },
+        "inputs": { "type": "array" },
+        "outputs": { "type": "array" },
+        "outcome": { "enum": ["confermata", "smentita", "inconcludente", "confirmed", "refuted", "inconclusive"] }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "required": ["key", "year"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z0-9]+$" },
+        "authors": { "type": "string" },
+        "year": { "type": "integer" },
+        "venue": { "type": "string" },
+        "doi": { "type": "string" },
+        "type": { "enum": ["article", "preprint", "book", "chapter", "report", "standard", "thesis", "dataset"] },
+        "peer_reviewed": { "type": "boolean" },
+        "retracted": { "type": "boolean" },
+        "original_file": { "type": "string" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["date", "status"],
+      "properties": {
+        "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "status": { "enum": ["proposta", "accettata", "rifiutata", "sostituita", "proposed", "accepted", "rejected", "superseded"] },
+        "deciders": { "type": "array", "items": { "type": "string" } },
+        "reversible": { "type": "string" },
+        "review_by": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "A deprecated page must say what replaced it.",
+      "if": { "properties": { "status": { "const": "deprecated" } }, "required": ["status"] },
+      "then": {
+        "anyOf": [
+          { "required": ["superseded_by"] },
+          { "properties": { "superseded_by": { "type": "string", "minLength": 1 } } }
+        ]
+      }
+    },
+    {
+      "$comment": "A dataset page must carry the data block.",
+      "if": { "properties": { "type": { "const": "dataset" } }, "required": ["type"] },
+      "then": { "required": ["data"] }
+    },
+    {
+      "$comment": "An experiment page must carry the experiment block.",
+      "if": { "properties": { "type": { "const": "experiment" } }, "required": ["type"] },
+      "then": { "required": ["experiment"] }
+    },
+    {
+      "$comment": "A literature note must be identifiable.",
+      "if": { "properties": { "type": { "const": "paper-note" } }, "required": ["type"] },
+      "then": { "required": ["citation"] }
+    }
+  ]
+}
